@@ -25,7 +25,7 @@ func main() {
 	switch mode {
 	case modeApi:
 		log.Println("Starting Scheduler API")
-		startAPI()
+		startAPI(app)
 
 	case modeConsumer:
 		log.Println("Starting Scheduler Consumer")

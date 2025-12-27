@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package scheduler.v1;
+
+// Go package option for generated code
+option go_package = "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulev1";
+
+
+// SchedulerService exposes APIs to schedule delayed events.
+service SchedulerService {
+  // Schedule registers a new delayed event.
+  rpc Schedule(ScheduleRequest) returns (ScheduleResponse);
+}
+
+// ScheduleRequest represents a single delayed event to be scheduled.
+message ScheduleRequest {
+
+  // Globally unique identifier for the event.
+  // Used for idempotency and deduplication.
+  string event_id = 1;
+
+  // Unix timestamp (seconds) when the event should be executed.
+  // Must be strictly greater than current time.
+  int64 execute_at = 2;
+
+  // Opaque payload that will be published as-is
+  // to downstream systems when the event fires.
+  bytes payload = 3;
+}
+
+// ScheduleResponse represents the result of a Schedule request.
+message ScheduleResponse {
+
+  // Indicates whether the event was successfully accepted for scheduling.
+  bool accepted = 1;
+}
