@@ -1,0 +1,25 @@
+grpc:
+  name: "scheduler-service"
+  host: "0.0.0.0:50051"
+
+redis:
+  hosts:
+    - "redis:6379"
+  cluster: false
+  serve_reads_from_slaves: true
+  serve_reads_from_master_and_slaves: true
+  min_idle_conns: 10
+  idle_timeout: 600000
+  pool_size: 75
+  read_timeout: 1000
+  write_timeout: 1000
+  dial_timeout: 500
+
+dynamo:
+  region: "us-east-1"
+  endpoint: "http://dynamodb:8000"
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  group_id: "scheduler-consumer"
