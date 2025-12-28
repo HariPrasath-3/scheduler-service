@@ -14,18 +14,26 @@ type GrpcConfig struct {
 	Host string `yaml:"host"`
 }
 
+type RedisMode string
+
+const (
+	RedisStandalone RedisMode = "standalone"
+	RedisCluster    RedisMode = "cluster"
+)
+
 type RedisConfig struct {
-	Hosts                         []string `yaml:"hosts"`
-	Password                      string   `yaml:"password"`
-	Cluster                       bool     `yaml:"cluster"`
-	ServeReadsFromSlaves          bool     `yaml:"serve_reads_from_slaves"`
-	ServeReadsFromMasterAndSlaves bool     `yaml:"serve_reads_from_master_and_slaves"`
-	ReadTimeout                   int      `yaml:"read_timeout"`
-	WriteTimeout                  int      `yaml:"write_timeout"`
-	IdleTimeout                   int      `yaml:"idle_timeout"`
-	DialTimeout                   int      `yaml:"dial_timeout"`
-	PoolSize                      int      `yaml:"pool_size"`
-	MinIdleConns                  int      `yaml:"min_idle_conns"`
+	Mode                          RedisMode `yaml:"mode"`
+	Hosts                         []string  `yaml:"hosts"`
+	Password                      string    `yaml:"password"`
+	Cluster                       bool      `yaml:"cluster"`
+	ServeReadsFromSlaves          bool      `yaml:"serve_reads_from_slaves"`
+	ServeReadsFromMasterAndSlaves bool      `yaml:"serve_reads_from_master_and_slaves"`
+	ReadTimeout                   int       `yaml:"read_timeout"`
+	WriteTimeout                  int       `yaml:"write_timeout"`
+	IdleTimeout                   int       `yaml:"idle_timeout"`
+	DialTimeout                   int       `yaml:"dial_timeout"`
+	PoolSize                      int       `yaml:"pool_size"`
+	MinIdleConns                  int       `yaml:"min_idle_conns"`
 }
 
 type KafkaConfig struct {
@@ -45,6 +53,7 @@ type SchedulerConfig struct {
 }
 
 type WorkerConfig struct {
-	PollIntervalMs   int `yaml:"poll_interval_ms"`
 	PastBucketsCount int `yaml:"past_buckets_count"`
+	SemaphoreLimit   int `yaml:"semaphore_limit"`
+	BatchSize        int `yaml:"batch_size"`
 }

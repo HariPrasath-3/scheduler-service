@@ -9,7 +9,7 @@ import (
 
 type Env struct {
 	config   *config.AppConfig
-	redis    *redis.ClusterClient
+	redis    redis.UniversalClient
 	dynamo   *dynamodb.Client
 	producer *kafka.Producer
 }
@@ -28,7 +28,7 @@ func WithAppConfig(cfg *config.AppConfig) func(*Env) {
 	}
 }
 
-func WithRedisClient(redis *redis.ClusterClient) func(*Env) {
+func WithRedisClient(redis redis.UniversalClient) func(*Env) {
 	return func(env *Env) {
 		env.redis = redis
 	}
@@ -50,7 +50,7 @@ func (e *Env) Config() *config.AppConfig {
 	return e.config
 }
 
-func (e *Env) Redis() *redis.ClusterClient {
+func (e *Env) Redis() redis.UniversalClient {
 	return e.redis
 }
 

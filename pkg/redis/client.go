@@ -7,17 +7,32 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func NewClient(redisConfig *config.RedisConfig) *redis.ClusterClient {
-	redisClusterClient := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:           redisConfig.Hosts,
-		PoolSize:        int(redisConfig.PoolSize),
-		MinIdleConns:    int(redisConfig.MinIdleConns),
-		ReadOnly:        redisConfig.ServeReadsFromSlaves,
-		RouteRandomly:   redisConfig.ServeReadsFromMasterAndSlaves,
-		DialTimeout:     time.Duration(redisConfig.DialTimeout) * time.Millisecond,
-		ReadTimeout:     time.Duration(redisConfig.ReadTimeout) * time.Millisecond,
-		WriteTimeout:    time.Duration(redisConfig.WriteTimeout) * time.Millisecond,
+func NewClient(redisConfig *config.RedisConfig) redis.UniversalClient {
+	opts := &redis.UniversalOptions{
+		Addrs:        redisConfig.Hosts,
+		Password:     redisConfig.Password,
+		PoolSize:     int(redisConfig.PoolSize),
+		MinIdleConns: int(redisConfig.MinIdleConns),
+
+		DialTimeout:  time.Duration(redisConfig.DialTimeout) * time.Millisecond,
+		ReadTimeout:  time.Duration(redisConfig.ReadTimeout) * time.Millisecond,
+		WriteTimeout: time.Duration(redisConfig.WriteTimeout) * time.Millisecond,
+
 		ConnMaxIdleTime: time.Duration(redisConfig.IdleTimeout) * time.Millisecond,
-	})
-	return redisClusterClient
+	}
+
+	// Standalone vs Cluster behavior
+	if redisConfig.Cluster {
+		opts.ReadOnly = redisConfig.ServeReadsFromSlaves
+		opts.RouteRandomly = redisConfig.ServeReadsFromMasterAndSlaves
+		opts.MaxRedirects = 8
+	} else {
+		// standalone redis expects exactly one address
+		if len(opts.Addrs) > 0 {
+			opts.Addrs = []string{opts.Addrs[0]}
+		}
+		opts.DB = 0
+	}
+
+	return redis.NewUniversalClient(opts)
 }

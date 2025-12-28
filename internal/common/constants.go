@@ -7,8 +7,8 @@ const (
 const (
 	// RedisKeyFormatterScheduledEventIDs is used to store scheduled event IDs
 	// in a specific bucket and partition.
-	RedisKeyFormatterScheduledEvents = "scheduled:bucket:%d:partition:%d"
+	RedisKeyFormatterScheduledEvents = "scheduler:scheduled:bucket:%d:partition:%d"
 
 	// RedisKeyFormatterProcessingEventIDs is used to store processing event IDs
-	RedisKeyFormatterProcessingEvents = "processing:bucket:%d:partition:%d"
+	RedisKeyFormatterProcessingEvents = "scheduler:processing:bucket:%d:partition:%d"
 )

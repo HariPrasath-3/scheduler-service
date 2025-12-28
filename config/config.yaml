@@ -3,6 +3,7 @@ grpc:
   host: "0.0.0.0:50051"
 
 redis:
+  mode: "standalone" # standalone | cluster 
   hosts:
     - "redis:6379"
   cluster: false
@@ -26,9 +27,10 @@ kafka:
   group_id: "scheduler-consumer"
 
 scheduler:
-  total_partitions: 16
+  total_partitions: 4
   bucket_size_sec: 60
 
 worker:
-  poll_interval_ms: 1000
   past_buckets_count: 5
+  semaphore_limit: 20
+  batch_size: 50

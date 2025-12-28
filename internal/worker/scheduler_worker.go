@@ -14,111 +14,165 @@ import (
 )
 
 type SchedulerWorker struct {
-	env      *env.Env
-	repo     dynamo.EventRepository
+	env  *env.Env
+	repo dynamo.EventRepository
+
 	workerID string
+	sem      chan struct{} // global concurrency limiter
 }
 
-func NewSchedulerWorker(env *env.Env) *SchedulerWorker {
+func NewSchedulerWorker(
+	env *env.Env,
+) *SchedulerWorker {
 	return &SchedulerWorker{
 		env:      env,
 		repo:     dynamo.NewEventRepository(env),
 		workerID: uuid.NewString(),
+		sem:      make(chan struct{}, env.Config().WorkerConfig.SemaphoreLimit),
 	}
 }
 
 func (w *SchedulerWorker) Start(ctx context.Context) {
-	log.Printf("starting scheduler worker %s", w.workerID)
+	log.Println("scheduler worker started")
 
-	cfg := w.env.Config().WorkerConfig
+	for p := uint32(0); p < uint32(w.env.Config().SchedulerConfig.TotalPartitions); p++ {
+		go w.runPartition(ctx, p)
+	}
 
-	ticker := time.NewTicker(time.Duration(cfg.PollIntervalMs) * time.Millisecond)
-	defer ticker.Stop()
+	<-ctx.Done()
+	log.Println("scheduler worker stopped")
+}
+
+func (w *SchedulerWorker) runPartition(
+	ctx context.Context,
+	partition uint32,
+) {
+	log.Printf("partition worker %d started", partition)
+
+	backoff := 10 * time.Millisecond
+	maxBackoff := 1 * time.Second
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("worker %s shutting down", w.workerID)
 			return
-
-		case <-ticker.C:
-			w.processTick(ctx)
+		default:
 		}
+
+		moved := w.drainPartition(ctx, partition)
+
+		// no work found, exponential backoff
+		if moved == 0 {
+			time.Sleep(backoff)
+			if backoff < maxBackoff {
+				backoff *= 2
+			}
+			continue
+		}
+
+		// reset backoff when work was found
+		backoff = 10 * time.Millisecond
 	}
 }
 
-func (w *SchedulerWorker) processTick(ctx context.Context) {
-	schedulerConfig := w.env.Config().SchedulerConfig
-	workerConfig := w.env.Config().WorkerConfig
+func (w *SchedulerWorker) drainPartition(
+	ctx context.Context,
+	partition uint32,
+) int {
 
 	now := time.Now().Unix()
-	currentBucket := now / int64(schedulerConfig.BucketSizeSec)
+	currentBucket := now / int64(w.env.Config().SchedulerConfig.BucketSizeSec)
+	pastBucketCount := int64(w.env.Config().WorkerConfig.PastBucketsCount)
 
-	for bucket := currentBucket; bucket >= currentBucket-int64(workerConfig.PastBucketsCount); bucket-- {
-		for partition := uint32(0); partition < uint32(schedulerConfig.TotalPartitions); partition++ {
-			w.processPartition(ctx, bucket, partition)
+	moved := 0
+
+	for bucket := currentBucket; bucket >= currentBucket-pastBucketCount; bucket-- {
+		for {
+			// 🔑 global concurrency guard
+			select {
+			case w.sem <- struct{}{}:
+				// acquired
+			default:
+				return moved
+			}
+
+			scheduledKey := fmt.Sprintf(
+				common.RedisKeyFormatterScheduledEvents,
+				bucket,
+				partition,
+			)
+
+			processingKey := fmt.Sprintf(
+				common.RedisKeyFormatterProcessingEvents,
+				bucket,
+				partition,
+			)
+
+			eventID, err := w.env.Redis().
+				LMove(ctx, scheduledKey, processingKey, "LEFT", "RIGHT").
+				Result()
+
+			if err != nil {
+				<-w.sem // release slot
+				return moved
+			}
+
+			moved++
+
+			go func(eid string, b int64) {
+				defer func() { <-w.sem }()
+				w.processEvent(ctx, b, partition, eid)
+			}(eventID, bucket)
+
+			if moved >= w.env.Config().WorkerConfig.BatchSize {
+				return moved
+			}
 		}
 	}
-}
 
-func (w *SchedulerWorker) processPartition(
-	ctx context.Context,
-	bucket int64,
-	partition uint32,
-) {
-
-	redisKey := fmt.Sprintf(
-		common.RedisKeyFormatterScheduledEvents,
-		bucket,
-		partition,
-	)
-
-	eventID, err := w.env.Redis().LPop(ctx, redisKey).Result()
-	if err != nil {
-		return // empty or transient error
-	}
-
-	w.processEvent(ctx, eventID)
+	return moved
 }
 
 func (w *SchedulerWorker) processEvent(
 	ctx context.Context,
+	bucket int64,
+	partition uint32,
 	eventID string,
 ) {
 
 	event, err := w.repo.Get(ctx, eventID)
 	if err != nil {
-		log.Printf("event %s not found, skipping", eventID)
 		return
 	}
 
-	// status check
+	// idempotency check
 	if event.Status != models.StatusScheduled {
+		w.ackEvent(ctx, bucket, partition, eventID)
 		return
 	}
 
-	// execute_at safety
-	if event.ExecuteAt > time.Now().Unix() {
-		// not due yet → skip (or requeue later)
+	// 🔥 execute (Kafka publish later)
+	log.Printf("executing event %s", event.ID)
+
+	// mark fired
+	if err := w.repo.UpdateStatus(ctx, event.ID, models.StatusFired); err != nil {
 		return
 	}
 
-	// publish to Kafka (log-only for now)
-	log.Printf(
-		"worker %s executing event %s topic=%s",
-		w.workerID,
-		event.ID,
-		event.Topic,
+	w.ackEvent(ctx, bucket, partition, eventID)
+}
+
+func (w *SchedulerWorker) ackEvent(
+	ctx context.Context,
+	bucket int64,
+	partition uint32,
+	eventID string,
+) {
+	processingKey := fmt.Sprintf(
+		"scheduler:processing:%d:%d",
+		bucket,
+		partition,
 	)
 
-	// TODO: kafkaProducer.Publish(event.Topic, event.Payload)
-
-	// mark as FIRED
-	if err := w.repo.UpdateStatus(
-		ctx,
-		event.ID,
-		models.StatusFired,
-	); err != nil {
-		log.Printf("failed to mark event %s as FIRED", event.ID)
-	}
+	_ = w.env.Redis().LRem(ctx, processingKey, 1, eventID).Err()
 }
