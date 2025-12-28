@@ -6,6 +6,7 @@ type AppConfig struct {
 	Kafka           KafkaConfig     `yaml:"kafka"`
 	Dynamo          DynamoConfig    `yaml:"dynamo"`
 	SchedulerConfig SchedulerConfig `yaml:"scheduler"`
+	WorkerConfig    WorkerConfig    `yaml:"worker"`
 }
 
 type GrpcConfig struct {
@@ -41,4 +42,9 @@ type DynamoConfig struct {
 type SchedulerConfig struct {
 	TotalPartitions int `yaml:"total_partitions"`
 	BucketSizeSec   int `yaml:"bucket_size_sec"`
+}
+
+type WorkerConfig struct {
+	PollIntervalMs   int `yaml:"poll_interval_ms"`
+	PastBucketsCount int `yaml:"past_buckets_count"`
 }

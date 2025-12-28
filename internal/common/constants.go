@@ -9,5 +9,6 @@ const (
 	// in a specific bucket and partition.
 	RedisKeyFormatterScheduledEvents = "scheduled:bucket:%d:partition:%d"
 
+	// RedisKeyFormatterProcessingEventIDs is used to store processing event IDs
 	RedisKeyFormatterProcessingEvents = "processing:bucket:%d:partition:%d"
 )

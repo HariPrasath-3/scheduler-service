@@ -19,6 +19,7 @@ import (
 type EventRepository interface {
 	Save(ctx context.Context, event *models.Event) error
 	Get(ctx context.Context, eventID string) (*models.Event, error)
+	UpdateStatus(ctx context.Context, eventID string, newStatus models.EventStatus) error
 }
 
 type EventRepositoryImpl struct {
@@ -67,6 +68,7 @@ func (r *EventRepositoryImpl) Save(
 	}
 	return err
 }
+
 func (r *EventRepositoryImpl) Get(
 	ctx context.Context,
 	eventID string,
@@ -96,4 +98,32 @@ func (r *EventRepositoryImpl) Get(
 
 	event := items.FromDynamoEventItem(&item)
 	return event, nil
+}
+
+func (r *EventRepositoryImpl) UpdateStatus(
+	ctx context.Context,
+	eventID string,
+	newStatus models.EventStatus,
+) error {
+	pk := fmt.Sprintf(items.EventPkFormat, eventID)
+	sk := items.EventSk
+
+	now := time.Now().Unix()
+
+	_, err := r.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName: &r.tableName,
+		Key: map[string]types.AttributeValue{
+			"pk": &types.AttributeValueMemberS{Value: pk},
+			"sk": &types.AttributeValueMemberS{Value: sk},
+		},
+		UpdateExpression: aws.String("SET #status = :newStatus, updated_at = :updatedAt"),
+		ExpressionAttributeNames: map[string]string{
+			"#status": "status",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":newStatus": &types.AttributeValueMemberS{Value: string(newStatus)},
+			":updatedAt": &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", now)},
+		},
+	})
+	return err
 }

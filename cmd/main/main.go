@@ -33,7 +33,7 @@ func main() {
 
 	case modeWorker:
 		log.Println("Starting Scheduler Worker")
-		startWorker()
+		startWorker(app)
 
 	default:
 		log.Fatalf("Unknown APP_MODE: %s", mode)

@@ -28,3 +28,7 @@ kafka:
 scheduler:
   total_partitions: 16
   bucket_size_sec: 60
+
+worker:
+  poll_interval_ms: 1000
+  past_buckets_count: 5
