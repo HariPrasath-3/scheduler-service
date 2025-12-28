@@ -32,6 +32,7 @@ type KafkaConfig struct {
 }
 
 type DynamoConfig struct {
-	Region   string `yaml:"region"`
-	Endpoint string `yaml:"endpoint"`
+	Region    string `yaml:"region"`
+	Endpoint  string `yaml:"endpoint"`
+	TableName string `yaml:"table_name"`
 }

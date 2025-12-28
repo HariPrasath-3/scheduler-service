@@ -1,5 +1,5 @@
 # -------- Build stage --------
-FROM golang:1.22.6-alpine AS builder
+FROM golang:1.24.0-alpine AS builder
 
 WORKDIR /app
 
@@ -18,6 +18,7 @@ FROM alpine:3.19
 WORKDIR /app
 
 COPY --from=builder /app/scheduler .
+COPY config ./config
 
 EXPOSE 50051
 

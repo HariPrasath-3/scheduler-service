@@ -89,6 +89,7 @@ func initialize(app *application) {
 	log.Println("kafka producer initialized")
 
 	env := env.NewEnv(
+		env.WithAppConfig(cfg),
 		env.WithRedisClient(redisClient),
 		env.WithDynamoClient(dynamoClient),
 		env.WithKafkaProducer(producer),

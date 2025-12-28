@@ -39,6 +39,28 @@ services:
     ports:
       - "8000:8000"
 
+  dynamodb-init:
+    image: amazon/aws-cli
+    container_name: dynamodb-init
+    depends_on:
+      - dynamodb
+    environment:
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: ["/bin/sh", "/scripts/create-dynamo-table.sh"]
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: ["/bin/sh", "/scripts/create-kafka-topics.sh"]
+
   scheduler-api:
     build: .
     container_name: scheduler-api
@@ -51,6 +73,8 @@ services:
       - redis
       - kafka
       - dynamodb
+      - dynamodb-init
+      - kafka-init
 
   scheduler-consumer:
     build: .
@@ -62,6 +86,8 @@ services:
       - redis
       - kafka
       - dynamodb
+      - dynamodb-init
+      - kafka-init
 
   scheduler-worker:
     build: .
@@ -73,3 +99,5 @@ services:
       - redis
       - kafka
       - dynamodb
+      - dynamodb-init
+      - kafka-init

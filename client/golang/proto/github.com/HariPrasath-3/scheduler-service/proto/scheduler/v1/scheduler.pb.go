@@ -24,15 +24,17 @@ const (
 // ScheduleRequest represents a single delayed event to be scheduled.
 type ScheduleRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Globally unique identifier for the event.
-	// Used for idempotency and deduplication.
-	EventId string `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	// Client reference ID for the event.
+	// Adivsed to be unique per event.
+	ReferenceId string `protobuf:"bytes,1,opt,name=reference_id,json=referenceId,proto3" json:"reference_id,omitempty"`
 	// Unix timestamp (seconds) when the event should be executed.
 	// Must be strictly greater than current time.
 	ExecuteAt int64 `protobuf:"varint,2,opt,name=execute_at,json=executeAt,proto3" json:"execute_at,omitempty"`
 	// Opaque payload that will be published as-is
 	// to downstream systems when the event fires.
-	Payload       []byte `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	Payload []byte `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Topic to which the event will be published when it fires.
+	Topic         string `protobuf:"bytes,4,opt,name=topic,proto3" json:"topic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,9 +69,9 @@ func (*ScheduleRequest) Descriptor() ([]byte, []int) {
 	return file_scheduler_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ScheduleRequest) GetEventId() string {
+func (x *ScheduleRequest) GetReferenceId() string {
 	if x != nil {
-		return x.EventId
+		return x.ReferenceId
 	}
 	return ""
 }
@@ -86,6 +88,13 @@ func (x *ScheduleRequest) GetPayload() []byte {
 		return x.Payload
 	}
 	return nil
+}
+
+func (x *ScheduleRequest) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
 }
 
 // ScheduleResponse represents the result of a Schedule request.
@@ -138,12 +147,13 @@ var File_scheduler_proto protoreflect.FileDescriptor
 
 const file_scheduler_proto_rawDesc = "" +
 	"\n" +
-	"\x0fscheduler.proto\x12\fscheduler.v1\"e\n" +
-	"\x0fScheduleRequest\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
+	"\x0fscheduler.proto\x12\fscheduler.v1\"\x83\x01\n" +
+	"\x0fScheduleRequest\x12!\n" +
+	"\freference_id\x18\x01 \x01(\tR\vreferenceId\x12\x1d\n" +
 	"\n" +
 	"execute_at\x18\x02 \x01(\x03R\texecuteAt\x12\x18\n" +
-	"\apayload\x18\x03 \x01(\fR\apayload\".\n" +
+	"\apayload\x18\x03 \x01(\fR\apayload\x12\x14\n" +
+	"\x05topic\x18\x04 \x01(\tR\x05topic\".\n" +
 	"\x10ScheduleResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted2]\n" +
 	"\x10SchedulerService\x12I\n" +

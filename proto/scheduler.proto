@@ -15,9 +15,9 @@ service SchedulerService {
 // ScheduleRequest represents a single delayed event to be scheduled.
 message ScheduleRequest {
 
-  // Globally unique identifier for the event.
-  // Used for idempotency and deduplication.
-  string event_id = 1;
+  // Client reference ID for the event.
+  // Adivsed to be unique per event.
+  string reference_id = 1;
 
   // Unix timestamp (seconds) when the event should be executed.
   // Must be strictly greater than current time.
@@ -26,6 +26,9 @@ message ScheduleRequest {
   // Opaque payload that will be published as-is
   // to downstream systems when the event fires.
   bytes payload = 3;
+
+  // Topic to which the event will be published when it fires.
+  string topic = 4;
 }
 
 // ScheduleResponse represents the result of a Schedule request.

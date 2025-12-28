@@ -18,6 +18,7 @@ redis:
 dynamo:
   region: "us-east-1"
   endpoint: "http://dynamodb:8000"
+  table_name: "scheduler-service-table"
 
 kafka:
   brokers:

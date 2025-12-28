@@ -8,6 +8,7 @@ import (
 	appconfig "github.com/HariPrasath-3/scheduler-service/pkg/config"
 	"github.com/HariPrasath-3/scheduler-service/pkg/env"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func NewGrpcServer(
@@ -20,6 +21,7 @@ func NewGrpcServer(
 	}
 
 	grpcServer := grpc.NewServer(serverOpts...)
+	reflection.Register(grpcServer)
 	return grpcServer, nil
 }
 

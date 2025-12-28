@@ -2,7 +2,7 @@ PWD := $(shell pwd)
 PROTO_DIR := $(PWD)/proto
 PROTO_OUT := $(PWD)/client/golang/proto
 
-.PHONY: run build test tidy docker-up docker-down docker-logs proto proto-clean
+.PHONY: run build test tidy docker-up docker-down docker-logs dynamo-create proto proto-clean
 
 run:
 	go run ./cmd/main
@@ -18,6 +18,9 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f
+
+dynamo-create:
+	./scripts/create-dynamo-table.sh
 
 proto:
 	mkdir -p $(PROTO_OUT)
