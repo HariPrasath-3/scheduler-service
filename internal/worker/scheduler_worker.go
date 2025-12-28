@@ -12,6 +12,7 @@ import (
 	"github.com/HariPrasath-3/scheduler-service/internal/repository/dynamo"
 	"github.com/HariPrasath-3/scheduler-service/pkg/env"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type SchedulerWorker struct {
@@ -51,7 +52,8 @@ func (w *SchedulerWorker) runPartition(
 ) {
 	log.Printf("partition worker %d started", partition)
 
-	backoff := time.Duration(w.env.Config().SchedulerWorkerConfig.BackoffMs) * time.Millisecond
+	initialBackoff := time.Duration(w.env.Config().SchedulerWorkerConfig.BackoffMs) * time.Millisecond
+	backoff := initialBackoff
 	maxBackoff := time.Duration(w.env.Config().SchedulerWorkerConfig.MaxBackoffMs) * time.Millisecond
 
 	for {
@@ -73,7 +75,7 @@ func (w *SchedulerWorker) runPartition(
 		}
 
 		// reset backoff when work was found
-		backoff = 10 * time.Millisecond
+		backoff = initialBackoff
 	}
 }
 
@@ -83,54 +85,112 @@ func (w *SchedulerWorker) drainPartition(
 ) int {
 
 	now := time.Now().Unix()
-	currentBucket := now / int64(w.env.Config().SchedulerConfig.BucketSizeSec)
+	bucketSize := int64(w.env.Config().SchedulerConfig.BucketSizeSec)
+	currentBucket := now / bucketSize
+
 	pastBucketCount := int64(w.env.Config().SchedulerWorkerConfig.PastBucketsCount)
+	batchSize := w.env.Config().SchedulerWorkerConfig.BatchSize
 
 	moved := 0
 
+	// Acquire ONE semaphore token for ONE batch
+	select {
+	case w.sem <- struct{}{}:
+		// token acquired
+	default:
+		return 0
+	}
+
+	// Batch can span multiple buckets (same partition)
+	eventIDs := make([]string, 0, batchSize)
+
+	// Scan buckets in time order: current → past
 	for bucket := currentBucket; bucket >= currentBucket-pastBucketCount; bucket-- {
-		for {
-			// 🔑 global concurrency guard
-			select {
-			case w.sem <- struct{}{}:
-				// acquired
-			default:
-				return moved
+
+		if len(eventIDs) >= batchSize {
+			break
+		}
+
+		scheduledKey := fmt.Sprintf(
+			common.RedisKeyFormatterScheduledEvents,
+			bucket,
+			partition,
+		)
+
+		processingKey := fmt.Sprintf(
+			common.RedisKeyFormatterProcessingEvents,
+			bucket,
+			partition,
+		)
+
+		remaining := batchSize - len(eventIDs)
+
+		// Pipeline LMOVE to reduce RTT
+		pipe := w.env.Redis().Pipeline()
+		cmds := make([]*redis.StringCmd, 0, remaining)
+
+		for range remaining {
+			cmds = append(
+				cmds,
+				pipe.LMove(ctx, scheduledKey, processingKey, "LEFT", "RIGHT"),
+			)
+		}
+
+		_, err := pipe.Exec(ctx)
+		if err != nil {
+			log.Printf(
+				"pipeline failed partition=%d bucket=%d err=%v",
+				partition, bucket, err,
+			)
+			break
+		}
+
+		for _, cmd := range cmds {
+			eventID, err := cmd.Result()
+			if err == redis.Nil {
+				break // Source list exhausted — no further LMOVEs can succeed
 			}
-
-			scheduledKey := fmt.Sprintf(
-				common.RedisKeyFormatterScheduledEvents,
-				bucket,
-				partition,
-			)
-
-			processingKey := fmt.Sprintf(
-				common.RedisKeyFormatterProcessingEvents,
-				bucket,
-				partition,
-			)
-
-			eventID, err := w.env.Redis().
-				LMove(ctx, scheduledKey, processingKey, "LEFT", "RIGHT").
-				Result()
-
 			if err != nil {
-				<-w.sem // release slot
-				return moved
+				// Command-specific failure; other LMOVEs may have succeeded
+				log.Printf(
+					"LMOVE failed partition=%d bucket=%d err=%v",
+					partition, bucket, err,
+				)
+				continue
 			}
 
-			moved++
-
-			go func(eid string, b int64) {
-				defer func() { <-w.sem }()
-				w.processEvent(ctx, b, partition, eid)
-			}(eventID, bucket)
-
-			if moved >= w.env.Config().SchedulerWorkerConfig.BatchSize {
-				return moved
-			}
+			// This event was successfully moved to processing
+			eventIDs = append(eventIDs, eventID)
 		}
 	}
+
+	// No work claimed → release token
+	if len(eventIDs) == 0 {
+		<-w.sem
+		return 0
+	}
+
+	moved = len(eventIDs)
+
+	// Batch goroutine OWNS the semaphore token
+	w.wg.Add(1)
+	go func(batch []string) {
+		defer w.wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf(
+					"[PANIC] worker=%s partition=%d err=%v",
+					w.workerID, partition, r,
+				)
+			}
+			<-w.sem // release token when batch finishes
+		}()
+
+		// Sequential processing preserves simplicity & retry safety
+		for _, eventID := range batch {
+			w.processEvent(ctx, currentBucket, partition, eventID)
+		}
+	}(eventIDs)
 
 	return moved
 }
