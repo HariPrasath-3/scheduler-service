@@ -29,7 +29,7 @@ func main() {
 
 	case modeConsumer:
 		log.Println("Starting Scheduler Consumer")
-		startConsumer()
+		startConsumer(app)
 
 	case modeWorker:
 		log.Println("Starting Scheduler Worker")
@@ -38,4 +38,6 @@ func main() {
 	default:
 		log.Fatalf("Unknown APP_MODE: %s", mode)
 	}
+	// Block until shutdown
+	app.WaitForClose()
 }

@@ -42,6 +42,20 @@ func NewConsumer(
 	}, nil
 }
 
+func (c *Consumer) Start(ctx context.Context) {
+	go func() {
+		for {
+			if err := c.group.Consume(ctx, c.topics, c); err != nil {
+				log.Printf("kafka consume error: %v", err)
+			}
+
+			if ctx.Err() != nil {
+				return
+			}
+		}
+	}()
+}
+
 func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
 	return nil
 }
