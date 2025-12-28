@@ -1,10 +1,11 @@
 package config
 
 type AppConfig struct {
-	Grpc   GrpcConfig   `yaml:"grpc"`
-	Redis  RedisConfig  `yaml:"redis"`
-	Kafka  KafkaConfig  `yaml:"kafka"`
-	Dynamo DynamoConfig `yaml:"dynamo"`
+	Grpc            GrpcConfig      `yaml:"grpc"`
+	Redis           RedisConfig     `yaml:"redis"`
+	Kafka           KafkaConfig     `yaml:"kafka"`
+	Dynamo          DynamoConfig    `yaml:"dynamo"`
+	SchedulerConfig SchedulerConfig `yaml:"scheduler"`
 }
 
 type GrpcConfig struct {
@@ -35,4 +36,9 @@ type DynamoConfig struct {
 	Region    string `yaml:"region"`
 	Endpoint  string `yaml:"endpoint"`
 	TableName string `yaml:"table_name"`
+}
+
+type SchedulerConfig struct {
+	TotalPartitions int `yaml:"total_partitions"`
+	BucketSizeSec   int `yaml:"bucket_size_sec"`
 }

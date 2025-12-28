@@ -24,3 +24,7 @@ kafka:
   brokers:
     - "kafka:9092"
   group_id: "scheduler-consumer"
+
+scheduler:
+  total_partitions: 16
+  bucket_size_sec: 60
