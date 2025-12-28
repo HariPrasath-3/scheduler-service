@@ -30,7 +30,14 @@ scheduler:
   total_partitions: 4
   bucket_size_sec: 60
 
-worker:
+scheduler_worker:
   past_buckets_count: 5
   semaphore_limit: 20
   batch_size: 50
+  backoff_ms: 10
+  max_backoff_ms: 1000
+
+retry_worker:
+  past_buckets_count: 5
+  retry_scan_interval_ms: 5000
+  retry_batch_size: 50

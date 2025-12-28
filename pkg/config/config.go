@@ -1,12 +1,13 @@
 package config
 
 type AppConfig struct {
-	Grpc            GrpcConfig      `yaml:"grpc"`
-	Redis           RedisConfig     `yaml:"redis"`
-	Kafka           KafkaConfig     `yaml:"kafka"`
-	Dynamo          DynamoConfig    `yaml:"dynamo"`
-	SchedulerConfig SchedulerConfig `yaml:"scheduler"`
-	WorkerConfig    WorkerConfig    `yaml:"worker"`
+	Grpc                  GrpcConfig            `yaml:"grpc"`
+	Redis                 RedisConfig           `yaml:"redis"`
+	Kafka                 KafkaConfig           `yaml:"kafka"`
+	Dynamo                DynamoConfig          `yaml:"dynamo"`
+	SchedulerConfig       SchedulerConfig       `yaml:"scheduler"`
+	SchedulerWorkerConfig SchedulerWorkerConfig `yaml:"scheduler_worker"`
+	RetryWorkerConfig     RetryWorkerConfig     `yaml:"retry_worker"`
 }
 
 type GrpcConfig struct {
@@ -52,8 +53,16 @@ type SchedulerConfig struct {
 	BucketSizeSec   int `yaml:"bucket_size_sec"`
 }
 
-type WorkerConfig struct {
+type SchedulerWorkerConfig struct {
 	PastBucketsCount int `yaml:"past_buckets_count"`
 	SemaphoreLimit   int `yaml:"semaphore_limit"`
 	BatchSize        int `yaml:"batch_size"`
+	BackoffMs        int `yaml:"backoff_ms"`
+	MaxBackoffMs     int `yaml:"max_backoff_ms"`
+}
+
+type RetryWorkerConfig struct {
+	PastBucketsCount    int `yaml:"past_buckets_count"`
+	RetryScanIntervalMs int `yaml:"retry_scan_interval_ms"`
+	RetryBatchSize      int `yaml:"retry_batch_size"`
 }

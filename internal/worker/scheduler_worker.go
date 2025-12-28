@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/HariPrasath-3/scheduler-service/internal/common"
@@ -19,6 +20,7 @@ type SchedulerWorker struct {
 
 	workerID string
 	sem      chan struct{} // global concurrency limiter
+	wg       sync.WaitGroup
 }
 
 func NewSchedulerWorker(
@@ -28,7 +30,7 @@ func NewSchedulerWorker(
 		env:      env,
 		repo:     dynamo.NewEventRepository(env),
 		workerID: uuid.NewString(),
-		sem:      make(chan struct{}, env.Config().WorkerConfig.SemaphoreLimit),
+		sem:      make(chan struct{}, env.Config().SchedulerWorkerConfig.SemaphoreLimit),
 	}
 }
 
@@ -49,8 +51,8 @@ func (w *SchedulerWorker) runPartition(
 ) {
 	log.Printf("partition worker %d started", partition)
 
-	backoff := 10 * time.Millisecond
-	maxBackoff := 1 * time.Second
+	backoff := time.Duration(w.env.Config().SchedulerWorkerConfig.BackoffMs) * time.Millisecond
+	maxBackoff := time.Duration(w.env.Config().SchedulerWorkerConfig.MaxBackoffMs) * time.Millisecond
 
 	for {
 		select {
@@ -82,7 +84,7 @@ func (w *SchedulerWorker) drainPartition(
 
 	now := time.Now().Unix()
 	currentBucket := now / int64(w.env.Config().SchedulerConfig.BucketSizeSec)
-	pastBucketCount := int64(w.env.Config().WorkerConfig.PastBucketsCount)
+	pastBucketCount := int64(w.env.Config().SchedulerWorkerConfig.PastBucketsCount)
 
 	moved := 0
 
@@ -124,7 +126,7 @@ func (w *SchedulerWorker) drainPartition(
 				w.processEvent(ctx, b, partition, eid)
 			}(eventID, bucket)
 
-			if moved >= w.env.Config().WorkerConfig.BatchSize {
+			if moved >= w.env.Config().SchedulerWorkerConfig.BatchSize {
 				return moved
 			}
 		}
@@ -142,6 +144,7 @@ func (w *SchedulerWorker) processEvent(
 
 	event, err := w.repo.Get(ctx, eventID)
 	if err != nil {
+		log.Printf("failed to get event %s: %v", eventID, err)
 		return
 	}
 
@@ -156,6 +159,7 @@ func (w *SchedulerWorker) processEvent(
 
 	// mark fired
 	if err := w.repo.UpdateStatus(ctx, event.ID, models.StatusFired); err != nil {
+		log.Printf("failed to update status for event %s: %v", event.ID, err)
 		return
 	}
 
@@ -169,10 +173,13 @@ func (w *SchedulerWorker) ackEvent(
 	eventID string,
 ) {
 	processingKey := fmt.Sprintf(
-		"scheduler:processing:%d:%d",
+		common.RedisKeyFormatterProcessingEvents,
 		bucket,
 		partition,
 	)
 
-	_ = w.env.Redis().LRem(ctx, processingKey, 1, eventID).Err()
+	err := w.env.Redis().LRem(ctx, processingKey, 1, eventID).Err()
+	if err != nil {
+		log.Printf("failed to ack event %s: %v", eventID, err)
+	}
 }
