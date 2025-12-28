@@ -6,8 +6,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const ctxKeyEnv = "env"
-
 type Env struct {
 	redis    *redis.ClusterClient
 	dynamo   *dynamodb.Client
@@ -21,25 +19,6 @@ func NewEnv(options ...func(env *Env)) *Env {
 	}
 	return env
 }
-
-// func UnaryServerInterceptor(env *Env) grpc.UnaryServerInterceptor {
-// 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-// 		nctx := env.WithContext(ctx)
-// 		return handler(nctx, req)
-// 	}
-// }
-
-// func KafkaHandlerWithEnv(e *Env, next kafka.MessageHandler) kafka.MessageHandler {
-// 	return kafka.MessageHandlerFunc(func(ctx context.Context, msg *sarama.ConsumerMessage) error {
-// 		nctx := e.WithContext(ctx)
-// 		return next.HandleMessage(nctx, msg)
-// 	})
-// }
-
-// func (env *Env) WithContext(ctx context.Context) context.Context {
-// 	nctx := context.WithValue(ctx, ctxKeyEnv, env)
-// 	return nctx
-// }
 
 func WithRedisClient(redis *redis.ClusterClient) func(*Env) {
 	return func(env *Env) {
