@@ -138,8 +138,9 @@ func (w *SchedulerWorker) drainPartition(
 			)
 		}
 
+		// Execute pipeline - ignore redis.Nil errors (empty list is normal)
 		_, err := pipe.Exec(ctx)
-		if err != nil {
+		if err != nil && err != redis.Nil {
 			log.Printf(
 				"pipeline failed partition=%d bucket=%d err=%v",
 				partition, bucket, err,
