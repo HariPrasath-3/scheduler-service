@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package common;
+
+// Go package option for generated code
+option go_package = "github.com/HariPrasath-3/scheduler-service/proto/common;common";
+
+// Status represents the outcome of an operation.
+message Status {
+  // Code indicating the result of the operation.
+  StatusCode code = 1;
+  // Human-readable message providing additional details.
+  string message = 2;
+}
+
+// StatusCode enumerates possible status codes for operations.
+enum StatusCode {
+    // Operation completed successfully.
+    SUCCESS = 0;
+    // Invalid request parameters or malformed input.
+    BAD_REQUEST = 1;
+    // Resource conflict, such as duplicate entry.
+    CONFLICT = 2;
+    // Unexpected server error occurred.
+    INTERNAL_SERVER_ERROR = 3;
+    // Requested resource was not found.
+    NOT_FOUND = 4;
+    // Operation completed successfully with no content to return.
+    NO_CONTENT = 5;
+    // Record was found in the system.
+    RECORD_FOUND = 6;
+}

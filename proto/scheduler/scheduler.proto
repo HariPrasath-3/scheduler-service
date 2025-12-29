@@ -5,19 +5,21 @@ package scheduler.v1;
 // Go package option for generated code
 option go_package = "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulev1";
 
+import "proto/common/status.proto";
 
 // SchedulerService exposes APIs to schedule delayed events.
 service SchedulerService {
   // Schedule registers a new delayed event.
   rpc Schedule(ScheduleRequest) returns (ScheduleResponse);
+  // Cancel removes a previously scheduled event.
+  rpc Cancel(CancelRequest) returns (CancelResponse);
 }
 
 // ScheduleRequest represents a single delayed event to be scheduled.
 message ScheduleRequest {
-
-  // Client reference ID for the event.
-  // Adivsed to be unique per event.
-  string reference_id = 1;
+  // Unique identifier for the event.
+  // must be uuid format.
+  string event_id = 1;
 
   // Unix timestamp (seconds) when the event should be executed.
   // Must be strictly greater than current time.
@@ -33,7 +35,18 @@ message ScheduleRequest {
 
 // ScheduleResponse represents the result of a Schedule request.
 message ScheduleResponse {
+  // Status of the scheduling operation.
+  common.Status status = 1;
+}
 
-  // Indicates whether the event was successfully accepted for scheduling.
-  bool accepted = 1;
+// CancelRequest represents a request to cancel a scheduled event.
+message CancelRequest {
+  // Unique identifier of the event to be canceled.
+  string event_id = 1;
+}
+
+// CancelResponse represents the result of a Cancel request.
+message CancelResponse {  
+  // Status of the cancellation operation.
+  common.Status status = 1;
 }

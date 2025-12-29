@@ -25,7 +25,7 @@ dynamo-create:
 proto:
 	mkdir -p $(PROTO_OUT)
 	protoc \
-		--proto_path=$(PROTO_DIR) \
+		--proto_path=$(PWD) \
 		--go_out=$(PROTO_OUT) \
 		--go-grpc_out=$(PROTO_OUT) \
 		$(shell find $(PROTO_DIR) -name "*.proto")

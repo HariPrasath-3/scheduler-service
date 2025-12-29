@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v5.29.3
-// source: scheduler.proto
+// source: proto/scheduler/scheduler.proto
 
 package schedulev1
 
@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	SchedulerService_Schedule_FullMethodName = "/scheduler.v1.SchedulerService/Schedule"
+	SchedulerService_Cancel_FullMethodName   = "/scheduler.v1.SchedulerService/Cancel"
 )
 
 // SchedulerServiceClient is the client API for SchedulerService service.
@@ -30,6 +31,8 @@ const (
 type SchedulerServiceClient interface {
 	// Schedule registers a new delayed event.
 	Schedule(ctx context.Context, in *ScheduleRequest, opts ...grpc.CallOption) (*ScheduleResponse, error)
+	// Cancel removes a previously scheduled event.
+	Cancel(ctx context.Context, in *CancelRequest, opts ...grpc.CallOption) (*CancelResponse, error)
 }
 
 type schedulerServiceClient struct {
@@ -50,6 +53,16 @@ func (c *schedulerServiceClient) Schedule(ctx context.Context, in *ScheduleReque
 	return out, nil
 }
 
+func (c *schedulerServiceClient) Cancel(ctx context.Context, in *CancelRequest, opts ...grpc.CallOption) (*CancelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelResponse)
+	err := c.cc.Invoke(ctx, SchedulerService_Cancel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SchedulerServiceServer is the server API for SchedulerService service.
 // All implementations must embed UnimplementedSchedulerServiceServer
 // for forward compatibility.
@@ -58,6 +71,8 @@ func (c *schedulerServiceClient) Schedule(ctx context.Context, in *ScheduleReque
 type SchedulerServiceServer interface {
 	// Schedule registers a new delayed event.
 	Schedule(context.Context, *ScheduleRequest) (*ScheduleResponse, error)
+	// Cancel removes a previously scheduled event.
+	Cancel(context.Context, *CancelRequest) (*CancelResponse, error)
 	mustEmbedUnimplementedSchedulerServiceServer()
 }
 
@@ -70,6 +85,9 @@ type UnimplementedSchedulerServiceServer struct{}
 
 func (UnimplementedSchedulerServiceServer) Schedule(context.Context, *ScheduleRequest) (*ScheduleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Schedule not implemented")
+}
+func (UnimplementedSchedulerServiceServer) Cancel(context.Context, *CancelRequest) (*CancelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Cancel not implemented")
 }
 func (UnimplementedSchedulerServiceServer) mustEmbedUnimplementedSchedulerServiceServer() {}
 func (UnimplementedSchedulerServiceServer) testEmbeddedByValue()                          {}
@@ -110,6 +128,24 @@ func _SchedulerService_Schedule_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SchedulerService_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SchedulerServiceServer).Cancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SchedulerService_Cancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SchedulerServiceServer).Cancel(ctx, req.(*CancelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SchedulerService_ServiceDesc is the grpc.ServiceDesc for SchedulerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -121,7 +157,11 @@ var SchedulerService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Schedule",
 			Handler:    _SchedulerService_Schedule_Handler,
 		},
+		{
+			MethodName: "Cancel",
+			Handler:    _SchedulerService_Cancel_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "scheduler.proto",
+	Metadata: "proto/scheduler/scheduler.proto",
 }
