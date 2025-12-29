@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	schedulev1 "github.com/HariPrasath-3/scheduler-service/client/golang/proto/github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1"
+	schedulerV1 "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1"
 	"github.com/google/uuid"
 )
 
@@ -14,7 +14,7 @@ func NewSchedulerValidator() *SchedulerValidator {
 	return &SchedulerValidator{}
 }
 
-func (v *SchedulerValidator) ValidateScheduleRequest(req *schedulev1.ScheduleRequest) error {
+func (v *SchedulerValidator) ValidateScheduleRequest(req *schedulerV1.ScheduleRequest) error {
 	if req == nil {
 		return fmt.Errorf("request cannot be nil")
 	}
@@ -48,7 +48,7 @@ func (v *SchedulerValidator) ValidateScheduleRequest(req *schedulev1.ScheduleReq
 	return nil
 }
 
-func (v *SchedulerValidator) ValidateCancelRequest(req *schedulev1.CancelRequest) error {
+func (v *SchedulerValidator) ValidateCancelRequest(req *schedulerV1.CancelRequest) error {
 	if req == nil {
 		return fmt.Errorf("request cannot be nil")
 	}

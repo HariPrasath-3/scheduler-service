@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 
-	schedulev1 "github.com/HariPrasath-3/scheduler-service/client/golang/proto/github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1"
 	"github.com/HariPrasath-3/scheduler-service/internal/models"
 	"github.com/HariPrasath-3/scheduler-service/internal/repository/dynamo"
 	"github.com/HariPrasath-3/scheduler-service/pkg/env"
+	schedulerV1 "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1"
 )
 
 type SchedulerService struct {
@@ -26,7 +26,7 @@ func NewSchedulerService(env *env.Env) *SchedulerService {
 
 func (s *SchedulerService) Schedule(
 	ctx context.Context,
-	req *schedulev1.ScheduleRequest,
+	req *schedulerV1.ScheduleRequest,
 ) error {
 	log.Printf("Received Schedule request: %+v", req)
 
@@ -69,7 +69,7 @@ func (s *SchedulerService) Schedule(
 
 func (s *SchedulerService) Cancel(
 	ctx context.Context,
-	req *schedulev1.CancelRequest,
+	req *schedulerV1.CancelRequest,
 ) error {
 	log.Printf("Received Cancel request: %+v", req)
 

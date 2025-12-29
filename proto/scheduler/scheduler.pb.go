@@ -4,7 +4,7 @@
 // 	protoc        v5.29.3
 // source: proto/scheduler/scheduler.proto
 
-package schedulev1
+package schedulerv1
 
 import (
 	common "github.com/HariPrasath-3/scheduler-service/proto/common"
@@ -255,7 +255,7 @@ const file_proto_scheduler_scheduler_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status2\xa2\x01\n" +
 	"\x10SchedulerService\x12I\n" +
 	"\bSchedule\x12\x1d.scheduler.v1.ScheduleRequest\x1a\x1e.scheduler.v1.ScheduleResponse\x12C\n" +
-	"\x06Cancel\x12\x1b.scheduler.v1.CancelRequest\x1a\x1c.scheduler.v1.CancelResponseBJZHgithub.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulev1b\x06proto3"
+	"\x06Cancel\x12\x1b.scheduler.v1.CancelRequest\x1a\x1c.scheduler.v1.CancelResponseBKZIgithub.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulerv1b\x06proto3"
 
 var (
 	file_proto_scheduler_scheduler_proto_rawDescOnce sync.Once

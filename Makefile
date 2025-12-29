@@ -1,6 +1,6 @@
 PWD := $(shell pwd)
 PROTO_DIR := $(PWD)/proto
-PROTO_OUT := $(PWD)/client/golang/proto
+PROTO_OUT := $(PWD)
 
 .PHONY: run build test tidy docker-up docker-down docker-logs dynamo-create proto proto-clean
 
@@ -23,12 +23,13 @@ dynamo-create:
 	./scripts/create-dynamo-table.sh
 
 proto:
-	mkdir -p $(PROTO_OUT)
 	protoc \
 		--proto_path=$(PWD) \
 		--go_out=$(PROTO_OUT) \
+		--go_opt=paths=source_relative \
 		--go-grpc_out=$(PROTO_OUT) \
+		--go-grpc_opt=paths=source_relative \
 		$(shell find $(PROTO_DIR) -name "*.proto")
 
 proto-clean:
-	rm -rf $(PROTO_OUT)
+	find $(PWD)/proto -name "*.pb.go" -delete

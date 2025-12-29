@@ -3,7 +3,7 @@ syntax = "proto3";
 package scheduler.v1;
 
 // Go package option for generated code
-option go_package = "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulev1";
+option go_package = "github.com/HariPrasath-3/scheduler-service/proto/scheduler/v1;schedulerv1";
 
 import "proto/common/status.proto";
 

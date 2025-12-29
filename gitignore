@@ -9,6 +9,9 @@
 go.work
 go.work.sum
 
+# Generated proto files
+**/*.pb.go
+
 # IDE
 .idea/
 .vscode/
