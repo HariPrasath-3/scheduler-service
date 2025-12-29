@@ -32,6 +32,7 @@ func NewSchedulerWorker(
 		repo:     dynamo.NewEventRepository(env),
 		workerID: uuid.NewString(),
 		sem:      make(chan struct{}, env.Config().SchedulerWorkerConfig.SemaphoreLimit),
+		wg:       sync.WaitGroup{},
 	}
 }
 
@@ -43,6 +44,7 @@ func (w *SchedulerWorker) Start(ctx context.Context) {
 	}
 
 	<-ctx.Done()
+	w.wg.Wait() // wait for all in-flight batches to finish
 	log.Println("scheduler worker stopped")
 }
 
